@@ -1,0 +1,76 @@
+Assumptions
+
+
+I have inferred from the given requirements and acceptance criteria that,
+* The messages don't need to be ordered in the standard output of the server as they appeared in the client standard input.
+* Standard encoding will be used while reading and writing.
+*  If there are tests in the standard input with no terminating character \n, the message            will not be sent to the server.
+* I haven't paid attention to the maximum size of a single message.
+
+
+
+
+Decisions behind the design.
+
+
+* For both the java applications, I have used Spring boot for easing the development process for dependency injection and other boilerplate code.
+
+
+* The first obvious choice I had to make was how to transfer the messages over the network.
+
+
+* Some of the designs considered were message passing using a message broker, websocket/ socket  and HTTP protocol.
+   *  I didn't want to complicate using a message broker, so didn’t use any of that.
+   *  Websocket seems to be a good fit as we dont need to keep opening a new    tcp connection and the message can be transmitted realtime.
+
+
+*  But I chose http using REST because,
+Pros
+1.  It is stateless, so it's simple.
+2.  I didn't want the server to push any information to the client.
+3.  One way communication could suffice
+4.  It could be extended for asynchronous communication.
+5.  Easy to horizontally scale.
+
+
+            Cons,
+
+
+1.  A trivial implementation would open a tcp connection for every request. Could be potentially harmful if the messages are to be sent very frequently to the server.
+2.  Cannot implement back pressure.
+3.  HTTP_2.0 which could potentially improve performance doesn't have much library support.
+
+
+
+
+Regarding the implementation,
+         More emphasis is given to the client side as it does more of the i/o operation which is costly.
+
+
+*  The client application will have one thread that will listen on the standard input and pick the message as it arrives and start processing it.
+
+
+*  In order to leverage parallelism, as the single main thread could simply block on processing the message, a simple task executor wrapper from spring is used, which can be configured in such a way that,  there are reasonable number of threads in the pool to process the messages simultaneously to improve throughput of the application.
+
+
+* If there are any errors in the system, currently I am not handling it. For example, if a message is not transmitted for any network issue, I have not tried to retry it. And on the client side, I have just commented on that section of code. Ideally, I would publish these errors using micrometer or persist them for further retry.
+
+
+* A standard circuit breaker is used to open the circuit should there be failures more than configured value. In that case, future requests are blocked so that we dont use network bandwidth.
+
+
+*  The server application hosting the service using tomcat server will handle these requests and print it to the standard output. Since its the server, there are 200 worker threads servicing the incoming requests. This comes for free with spring boot auto configuration.
+ 
+ Some of the cons of my approach,
+
+
+* The number of http requests is proportional to the number of messages arriving at the client.  If there are too many messages arriving frequently, one way to reduce this is by sending a batch of messages from client to server. However, that's not how it is implemented right now.
+
+
+
+
+
+
+
+
+And the acceptance shell script doesn't work. I couldn't figure out why when sending the messages in regular intervals piped to the client java process, it does not show up on the console. However, its working in the background and the two files generated after sorting are same.
