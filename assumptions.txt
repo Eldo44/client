@@ -5,7 +5,9 @@ I have inferred from the given requirements and acceptance criteria that,
 * The messages don't need to be ordered in the standard output of the server as they appeared in the client standard input.
 * Standard encoding will be used while reading and writing.
 *  If there are tests in the standard input with no terminating character \n, the message            will not be sent to the server.
-* I haven't paid attention to the maximum size of a single message.
+
+Disclaimer
+* I haven't paid attention to the maximum size of a single message. And thus I haven't implemented compression/decompression as I didn't have enough time. This will require me to only compress it if the request body has considerable number of bytes.
 
 
 
